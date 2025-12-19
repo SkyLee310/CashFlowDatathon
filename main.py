@@ -18,5 +18,33 @@ main_df = pd.merge(
     how='left'
 )
 
+category_linkage_clean = category_linkage_df.rename(columns={
+    'Category Names': 'Category_Key',
+    'Category': 'Flow_Type'
+})
+
+main_df = pd.merge(
+    main_df,
+    category_linkage_clean[['Category_Key', 'Flow_Type']],
+    left_on='Category',
+    right_on='Category_Key',
+    how='left'
+)
+
+# 4. HANDLE "OTHER" CATEGORY
+# Since 'Other' is not in the linkage file, we use logic:
+# Negative values = Outflow, Positive = Inflow
+main_df.loc[(main_df['Category'] == 'Other') & (main_df['Amount in USD'] < 0), 'Flow_Type'] = 'Outflow'
+main_df.loc[(main_df['Category'] == 'Other') & (main_df['Amount in USD'] >= 0), 'Flow_Type'] = 'Inflow'
+
+# 5. FINAL CLEANUP
+# Remove the redundant 'Code' and 'Category_Key' columns created by the merge
+main_df = main_df.drop(columns=['Code', 'Category_Key'])
+
+# Verify results
+print("Main DF Created Successfully!")
+print(f"Total Transactions: {len(main_df)}")
+print(main_df[['Pstng Date', 'Country', 'Flow_Type', 'Amount in USD']].head())
+
 main_df.to_excel('Updated Dataset.xlsx', index=False)
-print(main_df['Pstng Date'])
+
